@@ -108,3 +108,43 @@ Notas reutilizáveis para Pong, Tetris, Space Invaders e jogos semelhantes, cons
 - Mesmo assim, confira cada achado: um deles (rollover de `hb_MilliSeconds()`) era falso e um teste de 5 linhas o refutou.
 - Se o agente estiver sem cota (o Codex bateu o limite em 2026-10-08), troque de agente na hora e avise.
 - Releia o arquivo gerado antes de sobrescrevê-lo: o agente pode continuar editando depois de o processo parecer concluído.
+
+## Lições do Space Invaders (2026-10-08)
+
+Itens medidos ou verificados em Harbour 3.0.0 no Windows 11.
+
+### Tempo e tick
+- **[testado]** `hb_idleSleep( 0.002 )` NÃO dorme 2 ms: 50 chamadas levaram 1548 ms (~31 ms cada). Mesmo com `timeBeginPeriod(1)` ainda levou ~21 ms por chamada, porque `hb_idleSleep` dorme em passos grandes. `Inkey( 0.01 )` sofre do mesmo mal.
+- **Solução** (função C embutida, `#pragma BEGINDUMP`): `timeBeginPeriod(1)` na partida e `Sleep()` nativo no laço de espera. **[testado]** 30 chamadas de `SleepMs( 2 )` levaram 88 ms (~3 ms cada).
+- O autoteste mede isso (`TimerRes(1) + Sleep nativo`) e falha se a resolução voltar a ser grosseira.
+- O Snake ainda usa `Inkey( 0.01 )` na espera do tick; funciona porque o tick dele é lento (40 a 140 ms), mas em jogos com tick de 30 ms use o `Sleep` nativo.
+
+### Teclado: andar e atirar ao mesmo tempo
+- O console não informa "tecla solta". Com eventos de `Inkey`, segurar uma seta e apertar espaço faz o auto-repeat trocar de tecla.
+- **[testado]** `hbwin` do Harbour 3.0.0 NÃO tem `wapi_GetAsyncKeyState`, `wapi_GetForegroundWindow`, `wapi_GetConsoleWindow` nem `DllCall` (erro de link). Solução: função C embutida `KEYDOWN( nVk )` com `GetAsyncKeyState`, `GetConsoleWindow`, `GetForegroundWindow` e `GetAncestor( hCon, GA_ROOTOWNER )` (cobre conhost e Windows Terminal) e só vale com a janela em foco.
+- Sempre com fallback: cada evento de seta do `Inkey` é comparado com `KeyDown`. Se a tecla aparece pressionada, liga o modo direto; só volta ao fallback após 8 eventos seguidos sem nenhum visto como pressionado (toques rápidos não desligam o modo). Toque já solto no instante da leitura ainda move 1 célula.
+- Incluir `#include <mmsystem.h>` no bloco C para `timeBeginPeriod`; o `winmm` já é linkado pelo hbmk2.
+
+### Colisões com vários objetos
+- Checar colisão a cada tick para todo par que se move em velocidades diferentes. Bomba andando a cada 3 ticks e tiro a cada tick: checar só quando a bomba anda deixa o tiro atravessar a bomba. O autoteste varre as 3 defasagens possíveis.
+- Se o objeto nasce dentro de outro (tiro nasce na célula de um invasor), checar a colisão já no nascimento.
+- Rechecar tiro x invasor depois que a formação anda (o invasor pode descer para a célula do tiro).
+- Ao redesenhar uma célula depois de um acerto, não apagá-la de novo: o tratamento do acerto já redesenhou.
+- Ordem de desenho de elementos sobrepostos: limpar o que será destruído, desenhar a formação, redesenhar os sobreviventes (bunkers).
+
+### Som com prioridade (canal único)
+- Cada efeito tem prioridade e duração (tabela `s_hDur` preenchida na geração do WAV). Efeito de prioridade igual ou maior substitui o que toca; de prioridade menor é DESCARTADO, não enfileirado.
+- Ordem usada: marcha 1, tiro/bunker/UFO 2, acerto no invasor 3, acerto no UFO 4, morte/onda/fim de jogo 5.
+- Efeito em laço (warble do UFO) deve repetir antes do fim do WAV, senão há silêncio entre as repetições.
+- Ruído (explosões): onda quadrada com valor aleatório mantido por N amostras, N derivado da "frequência".
+
+### Dificuldade
+- Aceleração da formação limitada: piso de 2 ticks por passo (22x entre 55 invasores e 1). Sem piso, o último invasor fica impossível de acertar.
+- Teto de chance de bomba por tick (8%) e intervalo mínimo de movimento da bomba (2 ticks), senão as ondas altas viram parede.
+- Prêmio máximo do UFO raro (1 em 8).
+- HUD: contar as colunas do pior caso (5 vidas de 3 colunas + espaço = 19 colunas).
+
+### Processo de revisão com o Grok (texto apenas)
+- Passar o código dentro do prompt (arquivo lido com `$(cat ...)`) e pedir "responda somente em texto, não use ferramentas" dispensa `--always-approve`: o Grok devolve a revisão e não toca nos arquivos. 40 KB de prompt funcionou.
+- O Grok errou em 2 pontos que o build refutou (disse que `L2Bin`/`I2Bin`/`Bin2L` não estavam definidas, e que `hb_keyClear()` rodava a cada laço). Por outro lado, achou 6 bugs reais. Conferir tudo, como sempre.
+- A lista "NAO VERIFICADO" do Grok é útil: vários itens foram fechados por teste (`hb_RandomInt( a, b )` inclusivo nas duas pontas, `hb_DirBase()` com separador final, `hb_MemoWrit` binário, `hb_ADel`/`hb_AIns` com `.T.`), e o teste dos tempos achou o problema do `hb_idleSleep` que nenhum revisor viu.
