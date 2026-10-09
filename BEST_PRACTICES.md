@@ -148,3 +148,26 @@ Itens medidos ou verificados em Harbour 3.0.0 no Windows 11.
 - Passar o código dentro do prompt (arquivo lido com `$(cat ...)`) e pedir "responda somente em texto, não use ferramentas" dispensa `--always-approve`: o Grok devolve a revisão e não toca nos arquivos. 40 KB de prompt funcionou.
 - O Grok errou em 2 pontos que o build refutou (disse que `L2Bin`/`I2Bin`/`Bin2L` não estavam definidas, e que `hb_keyClear()` rodava a cada laço). Por outro lado, achou 6 bugs reais. Conferir tudo, como sempre.
 - A lista "NAO VERIFICADO" do Grok é útil: vários itens foram fechados por teste (`hb_RandomInt( a, b )` inclusivo nas duas pontas, `hb_DirBase()` com separador final, `hb_MemoWrit` binário, `hb_ADel`/`hb_AIns` com `.T.`), e o teste dos tempos achou o problema do `hb_idleSleep` que nenhum revisor viu.
+
+### O bug que o autoteste não pegou: `%` + `hb_ntos` (2026-10-09)
+
+O Space Invaders foi entregue com autoteste verde e **fechou sozinho depois do ENTER**. Causa: em Harbour, `s_nMarch % 4 + 1` devolve um número com casas decimais, e `hb_ntos( 2.00 )` vira `"2.00"`. O nome do efeito virou `march2.00`, que não existe na tabela de durações, e o acesso à tabela deu *Bound error* na segunda passada da marcha.
+
+- **Regra:** sempre `Int( a % b )` quando o resultado vira texto (`hb_ntos`, `Str`, chave de hash, nome de arquivo). Comparações e índices de array toleram o decimal, texto não.
+- **Regra:** nome montado em tempo de execução (`"march" + n`) precisa de teste que percorra todos os valores possíveis e confira que cada nome existe (teste `NextMarch gera march1..4 em ciclo, todos com WAV`).
+- **Regra:** funções de utilidade que consultam tabela (`PlaySfx`) devem ignorar nome inexistente em vez de derrubar o jogo.
+- **Falha de processo:** o autoteste cobria só as regras puras. O fluxo real (abertura, ENTER, laço do jogo, sons) nunca tinha rodado. **Nunca declarar "pronto" sem exercitar o fluxo real.**
+
+### Como diagnosticar crash em app GTWIN
+
+- O erro de execução do Harbour é escrito no console e a janela fecha em seguida: não aparece em stderr/stdout redirecionado nem fica visível.
+- Instalar um `ErrorBlock` que grava `invaders_crash.log` (descrição, operação, subsistema e pilha com `ProcName`/`ProcLine`) e dá `QUIT`. Com isso o crash do ENTER foi achado em uma execução (`Bound error / array access / PLAYSFX / PLAYGAME`).
+- Argumento `--play` (pula a abertura) acelera reproduzir.
+
+### Modo bot: teste de fluxo real sem humano
+
+- `--bot`: o jogo joga sozinho (mira na coluna viva mais próxima, atira sempre), tick acelerado (3 ms), invulnerável e com a formação 4x mais lenta, para limpar ondas. Grava `invaders_bot.log` com ticks, ondas limpas, pontos, vidas e o perfil de tempo por seção. Resultado: 5 ondas limpas em 107 s sem erro.
+- `--botdie`: sem invulnerabilidade, até o game over (cobre morte, perda de vidas, tela de fim e a saída).
+- O bot passa por abertura de onda, marcha, tiro, bombas, bunkers, UFO, vidas extras, morte e game over. Só o teclado real e a leitura de `KeyDown` ficam para o teste humano.
+- Perfil: acumular `hb_MilliSeconds()` por seção do tick (entrada, nave, tiro, formação, bombas, UFO/efeitos/HUD, espera). Medido: ~3 a 8 ms por tick de processamento, bem abaixo dos 30 ms do tick normal; a seção mais cara é "bombas" (varredura de bunkers e redesenho).
+- Cuidado ao interpretar o bot: a partida pode acabar por pouso dos invasores (bot lento), não por falha. Conferir sempre o motivo do fim.
