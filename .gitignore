@@ -8,3 +8,10 @@ snake_selftest.log
 *.key
 secrets.*
 *.pkl
+
+# Seguranca - auditoria automatica
+.env.*
+*.pem
+credentials.*
+*.p12
+*.pfx
