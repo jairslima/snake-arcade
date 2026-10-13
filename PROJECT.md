@@ -51,3 +51,7 @@ Compila sem erros, autoteste passa (saída 0, `snake_selftest.log`). Usuário j�
 ## Problemas conhecidos
 
 - Nenhum confirmado até agora.
+
+## Atualização 2026-10-13: cores
+
+Cores corrigidas: as letras C, M e Y não existem no Harbour 3.0 (viram cinza ou preto); o jogo agora usa BG, RB e GR e o autoteste tem a verificação `cores validas no fonte`. Ver `BEST_PRACTICES.md`.

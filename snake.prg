@@ -75,7 +75,7 @@ STATIC FUNCTION TitleScreen()
       { " ### ", "#   #", "#####", "#   #", "#   #" }, ;
       { "#   #", "#  # ", "###  ", "#  # ", "#   #" }, ;
       { "#####", "#    ", "#### ", "#    ", "#####" } }
-   LOCAL aClr := { "R+/N", "Y+/N", "G+/N", "C+/N", "M+/N" }
+   LOCAL aClr := { "R+/N", "GR+/N", "G+/N", "BG+/N", "RB+/N" }
    LOCAL nTick := 0, nSx := 0, k, i, r, nCol, cRow, nLen := 14
 
    SetColor( "W/N" )
@@ -84,7 +84,7 @@ STATIC FUNCTION TitleScreen()
 
    hb_DispOutAt( 8, 0, PadC( "- - -  A R C A D E   E D I T I O N  - - -", 80 ), "W/N" )
 
-   hb_DispOutAt( 10, 0, PadC( "HIGH SCORES", 80 ), "Y+/N" )
+   hb_DispOutAt( 10, 0, PadC( "HIGH SCORES", 80 ), "GR+/N" )
    FOR i := 1 TO Len( s_aHi )
       hb_DispOutAt( 10 + i, 30, Str( i, 1 ) + "  " + s_aHi[ i ][ 1 ] + "  " + StrZero( s_aHi[ i ][ 2 ], 6 ), ;
          IIF( i == 1, "G+/N", "W/N" ) )
@@ -211,7 +211,7 @@ STATIC PROCEDURE PlayGame()
                ENDIF
             ELSEIF k == Asc( "p" ) .OR. k == Asc( "P" )
                PlaySfx( "pause" )
-               Banner( "PAUSED - press any key", "Y+/N" )
+               Banner( "PAUSED - press any key", "GR+/N" )
                Inkey( 0 )
                RedrawField( aSnake, aObs, aFood, aBonus, nTick )
                nNext := hb_MilliSeconds() + nDelay
@@ -324,7 +324,7 @@ STATIC PROCEDURE PlayGame()
                   aBonus := NIL
                   nBonusT := 0
                ELSE
-                  PutCell( aBonus[ 1 ], aBonus[ 2 ], "$$", IIF( nTick % 2 == 0, "Y+/N", "R+/N" ) )
+                  PutCell( aBonus[ 1 ], aBonus[ 2 ], "$$", IIF( nTick % 2 == 0, "GR+/N", "R+/N" ) )
                ENDIF
             ENDIF
          ENDIF
@@ -349,7 +349,7 @@ STATIC PROCEDURE PlayGame()
          nDelay := LevelDelay( nLevel )
          PlaySfx( "level" )
          Hud( nScore, nLives, nLevel, nEaten, 0 )
-         Banner( "LEVEL " + LTrim( Str( nLevel ) ) + " !", "Y+/N" )
+         Banner( "LEVEL " + LTrim( Str( nLevel ) ) + " !", "GR+/N" )
          Inkey( 1.8 )
          aObs := MakeObs( nLevel )
       ENDIF
@@ -484,16 +484,16 @@ STATIC PROCEDURE Hud( nScore, nLives, nLevel, nEaten, nBonusT )
    hb_DispOutAt( 1, 4, "SCORE", "W/N" )
    hb_DispOutAt( 1, 10, StrZero( Min( nScore, 999999 ), 6 ), "G+/N" )
    hb_DispOutAt( 1, 22, "HI", "W/N" )
-   hb_DispOutAt( 1, 25, StrZero( nHi, 6 ), "Y+/N" )
+   hb_DispOutAt( 1, 25, StrZero( nHi, 6 ), "GR+/N" )
    hb_DispOutAt( 1, 38, "LEVEL", "W/N" )
-   hb_DispOutAt( 1, 44, StrZero( nLevel, 2 ), "C+/N" )
+   hb_DispOutAt( 1, 44, StrZero( nLevel, 2 ), "BG+/N" )
    hb_DispOutAt( 1, 54, "LIVES", "W/N" )
    hb_DispOutAt( 1, 60, PadR( Replicate( BLK + " ", nLives ), 10 ), "R+/N" )
 
    hb_DispOutAt( 2, 4, "FOOD ", "W/N" )
    hb_DispOutAt( 2, 9, Replicate( BLK, nEaten ) + Replicate( MSH, NFOOD_LVL - nEaten ), "G/N" )
    hb_DispOutAt( 2, 38, "BONUS", "W/N" )
-   hb_DispOutAt( 2, 44, PadR( Replicate( BLK, Int( nBonusT / 4 ) ), 20 ), "Y+/N" )
+   hb_DispOutAt( 2, 44, PadR( Replicate( BLK, Int( nBonusT / 4 ) ), 20 ), "GR+/N" )
 
 RETURN
 
@@ -525,7 +525,7 @@ STATIC PROCEDURE RedrawField( aSnake, aObs, aFood, aBonus, nTick )
       PutCell( aFood[ 1 ], aFood[ 2 ], "()", "R+/N" )
    ENDIF
    IF aBonus != NIL
-      PutCell( aBonus[ 1 ], aBonus[ 2 ], "$$", IIF( nTick % 2 == 0, "Y+/N", "R+/N" ) )
+      PutCell( aBonus[ 1 ], aBonus[ 2 ], "$$", IIF( nTick % 2 == 0, "GR+/N", "R+/N" ) )
    ENDIF
 
 RETURN
@@ -612,7 +612,7 @@ STATIC FUNCTION EnterInitials( nScore )
    SetColor( "W/N" )
    CLS
    hb_DispOutAt( 0, 0, PadC( "S N A K E   A R C A D E   by Jair Lima", 80 ), "N/W" )
-   hb_DispOutAt( 6, 0, PadC( "*** NEW HIGH SCORE ***", 80 ), "Y+/N" )
+   hb_DispOutAt( 6, 0, PadC( "*** NEW HIGH SCORE ***", 80 ), "GR+/N" )
    hb_DispOutAt( 8, 0, PadC( "SCORE " + StrZero( nScore, 6 ), 80 ), "G+/N" )
    hb_DispOutAt( 11, 0, PadC( "ENTER YOUR INITIALS", 80 ), "W/N" )
    hb_DispOutAt( 20, 0, PadC( "CIMA/BAIXO: letra   DIREITA/ENTER: proxima   ESQ: voltar", 80 ), "N+/N" )
@@ -725,10 +725,59 @@ RETURN
 // Autoteste sem interface (snake --selftest)
 // ---------------------------------------------------------------------
 
+// Varre um .prg e devolve a lista de strings de cor com letras que o Harbour NAO reconhece.
+// Letras validas: N B G R W (+ BG ciano, RB magenta, GR amarelo/marrom, U I X), com + ou * depois.
+// C, M e Y NAO existem: C+/N vira cinza (8) e Y/N vira preto (0). Devolve NIL se o arquivo nao existe.
+STATIC FUNCTION ColorLint( cFile )
+
+   LOCAL cSrc, i, cCh, cCur := "", lIn := .F., aBad := {}, aSides, cSide, cLet, j, lBad
+
+   IF ! File( cFile )
+      RETURN NIL
+   ENDIF
+   cSrc := MemoRead( cFile )
+   FOR i := 1 TO Len( cSrc )
+      cCh := SubStr( cSrc, i, 1 )
+      IF cCh == Chr( 34 )
+         IF lIn
+            lIn := .F.
+            // candidata: so letras, + e *, com uma unica barra, sem espacos
+            lBad := ( Len( cCur ) >= 3 .AND. Len( cCur ) <= 12 .AND. ( Len( cCur ) - Len( StrTran( cCur, "/", "" ) ) ) == 1 )
+            IF lBad
+               FOR j := 1 TO Len( cCur )
+                  IF ! SubStr( cCur, j, 1 ) $ "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+*/"
+                     lBad := .F.
+                     EXIT
+                  ENDIF
+               NEXT
+            ENDIF
+            IF lBad
+               aSides := hb_ATokens( cCur, "/" )
+               IF Len( aSides ) == 2 .AND. ! Empty( aSides[ 1 ] ) .AND. ! Empty( aSides[ 2 ] )
+                  FOR EACH cSide IN aSides
+                     cLet := Upper( StrTran( StrTran( cSide, "+", "" ), "*", "" ) )
+                     IF ! ( "|" + cLet + "|" ) $ "|N|B|G|BG|R|RB|GR|W|U|I|X|"
+                        AAdd( aBad, cCur )
+                        EXIT
+                     ENDIF
+                  NEXT
+               ENDIF
+            ENDIF
+         ELSE
+            lIn := .T.
+            cCur := ""
+         ENDIF
+      ELSEIF lIn
+         cCur += cCh
+      ENDIF
+   NEXT
+
+RETURN aBad
+
 STATIC PROCEDURE SelfTest()
 
    LOCAL aSnake := { { 3, 9 }, { 4, 9 }, { 5, 9 }, { 6, 9 } }
-   LOCAL aObs, aFood, aFull, i, nBad := 0, cWav
+   LOCAL aObs, aFood, aFull, i, nBad := 0, cWav, aBadClr
 
    ? "WAV em: " + s_cTmp
    FOR EACH cWav IN { "coin", "start", "eat", "bonus", "die", "level", "gameover", "pause", "hiscore" }
@@ -767,6 +816,12 @@ STATIC PROCEDURE SelfTest()
    IF aFood == NIL .OR. aFood[ 1 ] != 99 % FW .OR. aFood[ 2 ] != Int( 99 / FW )
       nBad++
       ? "FALHA: NewFood com uma celula livre"
+   ENDIF
+   // cores: o proprio fonte nao pode usar letras de cor que o Harbour nao reconhece (C, M, Y)
+   aBadClr := ColorLint( hb_DirBase() + "snake.prg" )
+   IF aBadClr != NIL .AND. ! Empty( aBadClr )
+      nBad++
+      ? "FALHA cores invalidas no fonte: " + hb_ValToExp( aBadClr )
    ENDIF
    ? "Fases testadas: 12, falhas: " + LTrim( Str( nBad ) )
    ? "Recordes: " + LTrim( Str( Len( s_aHi ) ) ) + " entradas, topo " + s_aHi[ 1 ][ 1 ] + " " + LTrim( Str( s_aHi[ 1 ][ 2 ] ) )
