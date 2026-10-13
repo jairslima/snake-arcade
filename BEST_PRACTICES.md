@@ -1,6 +1,6 @@
 # Boas práticas: jogos ASCII em Harbour/Clipper
 
-Notas reutilizáveis para Pong, Tetris, Space Invaders e jogos semelhantes, considerando Harbour 3.0.0 em console Windows com GTWIN.
+Notas reutilizáveis para Tetris e jogos semelhantes (Snake, Space Invaders e Pong já seguem este guia), considerando Harbour 3.0.0 em console Windows com GTWIN.
 
 ## 1. Estrutura do código
 
@@ -171,3 +171,41 @@ O Space Invaders foi entregue com autoteste verde e **fechou sozinho depois do E
 - O bot passa por abertura de onda, marcha, tiro, bombas, bunkers, UFO, vidas extras, morte e game over. Só o teclado real e a leitura de `KeyDown` ficam para o teste humano.
 - Perfil: acumular `hb_MilliSeconds()` por seção do tick (entrada, nave, tiro, formação, bombas, UFO/efeitos/HUD, espera). Medido: ~3 a 8 ms por tick de processamento, bem abaixo dos 30 ms do tick normal; a seção mais cara é "bombas" (varredura de bunkers e redesenho).
 - Cuidado ao interpretar o bot: a partida pode acabar por pouso dos invasores (bot lento), não por falha. Conferir sempre o motivo do fim.
+
+## Lições do Pong (2026-10-13)
+
+### Nunca dar a uma função o nome de um comando do Clipper/Harbour
+
+- `STATIC PROCEDURE Wait( nSec )` compila sem erro, mas a chamada `Wait( 1.1 )` é reescrita pelo pré-processador no comando `WAIT` (`__Wait`), que mostra a mensagem e **espera uma tecla**. O jogo ficava parado depois do primeiro ponto. Pelo `gdb` a pilha mostrava `HB_FUN___WAIT` ← `HB_FUN_INKEY` ← `hb_idleState`.
+- Evitar como nome de função, procedimento ou variável: `Wait`, `Accept`, `Input`, `Clear`, `Quit`, `Set`, `Release`, `Store`, `Count`, `Sort`, `Total`, `Keyboard`, `Replace`, `Erase`, `Copy`, `Delete`, `Zap`, `Pack`, `List`, `Display`, `Say`, `Get`, `Read`, `Public`, `Private`, `Seek`, `Skip`, `Go`, `Use`, `Index`, `Append`, `Locate`, `Continue`, `Return`, `Cancel`, `Close`. Use prefixos de domínio: `PauseSec`, `GameQuit`, `ShowMenu`.
+- Dica de diagnóstico: se um jogo "trava" e a thread principal está em `Inkey` ou `hb_idleState`, procure no código uma função com nome de comando.
+
+### Como achar a causa de um processo congelado (técnica que funcionou)
+
+1. Confirmar o estado das threads (`Get-Process -Id N | Select Threads`): `Ready` repetido = a thread acorda de um `Sleep` em laço, não está presa em E/S.
+2. `gdb.exe -q -batch -p PID -ex "thread 1" -ex "x/160a $esp"` (o `gdb` fica em `C:\hb30\comp\mingw\bin`). A pilha de memória mostra os retornos com os nomes das funções internas do Harbour (`hb_inkey`, `HB_FUN___WAIT`) mesmo sem símbolos do PRG.
+3. Desconfiar dos nomes do `gdb` quando o executável não tem símbolos: ele atribui o endereço ao símbolo vizinho (aqui "ReadKey" era outra coisa).
+4. Descartar hipóteses medindo, não supondo: foram testadas e refutadas relógio do sistema, pipe do Windows Terminal, gravação de logs, som e leitura de teclado antes de achar o `WAIT`.
+
+### Rodar o bot sem console
+
+- O bot (`--bot`) joga CPU x CPU sem teclado e sem desenho. Compilar uma variante `pongbot.hbp` com `-gtnul` (GT nulo): nenhuma saída de console, nada para travar em terminal automatizado, e é a forma correta de testar o fluxo real em CI.
+- O mesmo código rodou também no console real (`pong.exe --bot`) para provar o desenho.
+
+### Simulação revela IA que nunca erra
+
+- A simulação CPU x CPU do autoteste mostrou 300 de 300 pontos sem fim: o erro de mira da IA era menor que a zona de acerto da raquete (±2,1 linhas), então a IA nunca errava. Regra: erro máximo da IA **maior** que a zona de acerto, e testar com simulação que todo ponto termina. Chance de erro: fácil ~42%, normal ~19%, difícil ~9%.
+
+### Relógio de tick
+
+- Usar relógio monotônico (`QueryPerformanceCounter` via função C `TICKMS`) para o pacing; `hb_MilliSeconds()` vem do relógio do sistema e pode saltar.
+- Teste de tempo no autoteste: medir 3 vezes e usar a melhor (uma amostra varia com a carga do computador, 85 ms a 233 ms para o mesmo teste).
+
+### Estado e testes
+
+- Todo `STATIC` de estado deve ter valor inicial na declaração: o autoteste chama regras direto, sem passar pelo início da partida, e `s_nHits++` em `NIL` derrubou o teste.
+- Console "quieto" (`ConsoleQuiet`): desligar mouse, eventos de janela e QuickEdit (clique no console congela toda a saída) no início do jogo.
+
+### Fluxo de revisão (3º jogo)
+
+- Tempo gasto: o `Wait` custou mais de uma hora de diagnóstico porque os sintomas pareciam de ambiente. Se um jogo "congela" só no bot, **olhar primeiro o código do fluxo** (nomes, comandos, esperas) antes do ambiente.
